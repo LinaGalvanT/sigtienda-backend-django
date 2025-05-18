@@ -1,0 +1,49 @@
+<!-- Extendemos la plantilla base -->
+{% extends 'base.html' %}
+<!-- Bloque de titulo -->
+{% block title %}Crear Venta - SIG Tienda{% endblock%}
+<!-- Bloque de contenido -->
+{% block content %}
+<div class="container">
+  <h1>Crear Nueva Venta</h1>
+  <form method="post" class="mt-4">
+    {% csrf_token %}
+
+    <!-- Datos de la venta -->
+    <h2>Datos de la Venta</h2>
+    <div class="mb-3">{{ venta_form.as_p }}</div>
+
+    <!-- Detalles de la venta (productos) -->
+    <h2>Productos</h2>
+    {{ detalle_formset.management_form }}
+    <!-- Mostrar los detalles de la venta -->
+    {% for form in detalle_formset %}
+    <div class="detalle-venta mb-3 p-3 border rounded">{{ form.as_p }}</div>
+    {% endfor %}
+    <!-- formulario vacio para clonarlo con js y agregar productos -->
+    <div id="detalle-venta-vacio" class="d-none">
+      {{ detalle_formset.empty_form }}
+    </div>
+    <!-- Boton para agregar productos -->
+    <button type="button" class="btn btn-success" id="agregar-producto">
+      Agregar Producto
+    </button>
+    <!-- Boton para guardar -->
+    <button type="submit" class="btn btn-primary">Guardar Venta</button>
+    <a href="{% url 'crear_venta' %}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+
+<script>
+  const botonAgregarProducto = document.getElementById("agregar-producto");
+
+  botonAgregarProducto.addEventListener("click", () => {
+    const nuevoFormularioDetalle = document.getElementById(
+      "detalle-venta-vacio"
+    ).cloneNode(true);
+
+    nuevoFormularioDetalle.setAttribute("class", "detalle-venta mb-3 p-3 border rounded");
+
+  });
+</script>
+{% endblock %}
