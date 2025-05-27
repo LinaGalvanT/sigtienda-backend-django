@@ -169,7 +169,7 @@ class Venta(models.Model):
     totalCompra = models.FloatField()
 
     def __str__(self):
-        return self.id  
+        return str(self.id) 
          
     class Meta:
         verbose_name = "Venta"
@@ -207,13 +207,12 @@ class  Inventario(models.Model):
 class DetalleVenta(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    pago = models.ForeignKey(Pago, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     precio = models.FloatField()
     total = models.FloatField()
     
     def __str__(self):
-        return self.id
+        return str(self.id) 
     
     class Meta:
         verbose_name = "Detalle de venta"
@@ -239,6 +238,7 @@ class Fiado(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE)
     montoDeuda = models.FloatField()
     fechaPago = models.DateField()
+    CuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.id

@@ -1,12 +1,13 @@
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
-from .forms import LoginForm, SignupForm, DetalleVentaForm, VentaForm
-from django.forms import formset_factory
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.forms import formset_factory
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from .forms import LoginForm, SignupForm, DetalleVentaForm, VentaForm
 from .models import Venta, DetalleVenta, Producto
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -67,35 +68,43 @@ def ventas(request):
 
 @login_required
 def crear_venta(request):
-    # Creamos un formset para los detalles de la venta (mínimo 1 producto)
-    DetalleVentaFormSet = formset_factory(DetalleVentaForm, extra=0)
-
+    DetalleVentaFormSet = formset_factory(DetalleVentaForm, extra=1)
     if request.method == 'POST':
         venta_form = VentaForm(request.POST)
         detalle_formset = DetalleVentaFormSet(request.POST)
-
         if venta_form.is_valid() and detalle_formset.is_valid():
-            # Guardamos la venta sin commit para asignar el usuario
             venta = venta_form.save(commit=False)
-            venta.usuario = request.user  # Asignamos el usuario autenticado
+            venta.usuario = request.user
+            venta.totalCompra = 0  # Valor temporal para evitar el error por null
+            total_venta = 0
             venta.save()
-
-            # Guardamos los detalles de la venta
             for form in detalle_formset:
-                detalle = form.save(commit=False)
-                detalle.venta = venta
-                detalle.total = detalle.cantidad * detalle.precio  # Calculamos el total por producto
-                detalle.save()
-
-            return redirect('ventas')  # Redirigimos al módulo de ventas
+                if form.cleaned_data:
+                    detalle = form.save(commit=False)
+                    detalle.venta = venta
+                    # Asigna el precio del producto seleccionado
+                    detalle.precio = detalle.producto.precio
+                    detalle.total = detalle.cantidad * detalle.precio
+                    total_venta += detalle.total
+                    detalle.save()
+                    # Actualiza inventario
+                    producto = detalle.producto
+                    producto.cantidad -= detalle.cantidad
+                    producto.save()
+            venta.totalCompra = total_venta
+            venta.save()
+            return redirect('ventas')
     else:
         venta_form = VentaForm()
         detalle_formset = DetalleVentaFormSet()
-
     return render(request, 'ventas/crear_venta.html', {
         'venta_form': venta_form,
         'detalle_formset': detalle_formset,
     })
+
+def obtener_precio_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    return JsonResponse({'precio': producto.precio})
 
 @login_required
 def editar_venta(request, venta_id):

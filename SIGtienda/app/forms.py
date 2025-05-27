@@ -47,7 +47,7 @@ class SignupForm(UserCreationForm):
 class VentaForm(forms.ModelForm):
     class Meta:
         model = Venta
-        fields = ['cliente', 'fechaVenta', 'totalCompra']
+        fields = ['cliente', 'fechaVenta']
         widgets = {
             'fechaVenta': forms.DateInput(attrs={'type': 'date'}),
         }
@@ -56,9 +56,8 @@ class VentaForm(forms.ModelForm):
 class DetalleVentaForm(forms.ModelForm):
     class Meta:
         model = DetalleVenta
-        fields = ['producto', 'cantidad', 'precio']
+        fields = ['producto', 'cantidad']
         widgets = {
             'producto': forms.Select(attrs={'class': 'form-control'}),
             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
-            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }

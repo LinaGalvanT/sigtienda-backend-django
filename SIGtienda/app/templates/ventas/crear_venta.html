@@ -1,49 +1,225 @@
-<!-- Extendemos la plantilla base -->
-{% extends 'base.html' %}
-<!-- Bloque de titulo -->
-{% block title %}Crear Venta - SIG Tienda{% endblock%}
-<!-- Bloque de contenido -->
+{% extends 'base.html' %} 
+{% load crispy_forms_tags %} 
+
 {% block content %}
 <div class="container">
-  <h1>Crear Nueva Venta</h1>
-  <form method="post" class="mt-4">
+  <h2>{% if edicion %}Editar{% else %}Nueva{% endif %} Venta</h2>
+  <form method="post" id="venta-form">
     {% csrf_token %}
-
-    <!-- Datos de la venta -->
-    <h2>Datos de la Venta</h2>
-    <div class="mb-3">{{ venta_form.as_p }}</div>
-
-    <!-- Detalles de la venta (productos) -->
-    <h2>Productos</h2>
-    {{ detalle_formset.management_form }}
-    <!-- Mostrar los detalles de la venta -->
-    {% for form in detalle_formset %}
-    <div class="detalle-venta mb-3 p-3 border rounded">{{ form.as_p }}</div>
-    {% endfor %}
-    <!-- formulario vacio para clonarlo con js y agregar productos -->
-    <div id="detalle-venta-vacio" class="d-none">
-      {{ detalle_formset.empty_form }}
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Datos del Cliente</h5>
+        {{ venta_form.cliente|as_crispy_field }} 
+        {{ venta_form.fechaVenta|as_crispy_field }}
+      </div>
     </div>
-    <!-- Boton para agregar productos -->
-    <button type="button" class="btn btn-success" id="agregar-producto">
-      Agregar Producto
-    </button>
-    <!-- Boton para guardar -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Productos</h5>
+        <div id="formset-container">
+          {{ detalle_formset.management_form }}
+          
+          {% if venta_form.errors %}
+          <div class="alert alert-danger">
+              {{ venta_form.errors }}
+          </div>
+          {% endif %}
+          {% if detalle_formset.non_form_errors %}
+          <div class="alert alert-danger">
+              {{ detalle_formset.non_form_errors }}
+          </div>
+          {% endif %}
+          {% for form in detalle_formset %}
+              {% if form.errors %}
+                  <div class="alert alert-danger">
+                      {{ form.errors }}
+                  </div>
+              {% endif %}
+          {% endfor %}
+
+          {% for form in detalle_formset%}
+          <div class="formset-row row mb-3">
+            <div class="col-md-5">
+              {{ form.producto.label_tag }} {{ form.producto }}
+            </div>
+            <div class="col-md-2">
+              {{ form.cantidad.label_tag }} {{ form.cantidad }}
+            </div>
+            <div class="col-md-2">
+              <label>Precio Unitario:</label>
+              <input
+                type="number"
+                class="form-control precio"
+                readonly
+                tabindex="-1"
+              />
+            </div>
+            <div class="col-md-2">
+              <label>Subtotal:</label>
+              <input
+                type="number"
+                class="form-control subtotal"
+                readonly
+                tabindex="-1"
+              />
+            </div>
+            <div class="col-md-1">
+              <button
+                type="button"
+                class="btn btn-danger btn-sm mt-4 remove-row"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary mt-2" id="add-row">
+          Agregar Producto
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-body">
+        <h4 class="text-end">Total: $<span id="total-venta">0.00</span></h4>
+      </div>
+    </div>
     <button type="submit" class="btn btn-primary">Guardar Venta</button>
-    <a href="{% url 'crear_venta' %}" class="btn btn-secondary">Cancelar</a>
   </form>
 </div>
 
 <script>
-  const botonAgregarProducto = document.getElementById("agregar-producto");
+  document.addEventListener("DOMContentLoaded", function () {
+    // Función para actualizar el subtotal y el total
+    function calculateSubtotal(row) {
+      const cantidadInput = row.querySelector('input[name$="-cantidad"]');
+      const precioInput = row.querySelector(".precio");
+      const subtotalInput = row.querySelector(".subtotal");
+      const cantidad = parseFloat(cantidadInput.value) || 0;
+      const precio = parseFloat(precioInput.value) || 0;
+      subtotalInput.value = (cantidad * precio).toFixed(2);
+      calculateTotal();
+    }
 
-  botonAgregarProducto.addEventListener("click", () => {
-    const nuevoFormularioDetalle = document.getElementById(
-      "detalle-venta-vacio"
-    ).cloneNode(true);
+    function calculateTotal() {
+      let total = 0;
+      document.querySelectorAll(".subtotal").forEach((input) => {
+        total += parseFloat(input.value) || 0;
+      });
+      document.getElementById("total-venta").textContent = total.toFixed(2);
+    }
 
-    nuevoFormularioDetalle.setAttribute("class", "detalle-venta mb-3 p-3 border rounded");
+    // Función para evitar productos repetidos
+    function preventDuplicateProducts() {
+      const selects = document.querySelectorAll('select[name$="-producto"]');
+      const selectedValues = Array.from(selects)
+        .map((sel) => sel.value)
+        .filter((v) => v);
+      selects.forEach((sel) => {
+        Array.from(sel.options).forEach((opt) => {
+          if (
+            opt.value &&
+            selectedValues.includes(opt.value) &&
+            sel.value !== opt.value
+          ) {
+            opt.disabled = true;
+          } else {
+            opt.disabled = false;
+          }
+        });
+      });
+    }
 
+    // Función para agregar eventos a una fila
+    function attachEventListeners(row) {
+      // Actualizar precio al seleccionar producto
+      const productoSelect = row.querySelector('select[name$="-producto"]');
+      const precioInput = row.querySelector(".precio");
+      productoSelect.addEventListener("change", function () {
+        const productoId = this.value;
+        if (productoId) {
+          fetch(`/api/productos/${productoId}/precio/`)
+            .then((response) => response.json())
+            .then((data) => {
+              precioInput.value = data.precio;
+              calculateSubtotal(row);
+              preventDuplicateProducts();
+            });
+        } else {
+          precioInput.value = "";
+          calculateSubtotal(row);
+          preventDuplicateProducts();
+        }
+      });
+
+      // Actualizar subtotal al cambiar cantidad
+      row
+        .querySelector('input[name$="-cantidad"]')
+        .addEventListener("input", function () {
+          calculateSubtotal(row);
+        });
+
+      // Botón eliminar fila
+      row.querySelector(".remove-row").addEventListener("click", function () {
+        row.remove();
+        updateTotalForms();
+        calculateTotal();
+        preventDuplicateProducts();
+      });
+    }
+
+    // Actualizar número de formularios
+    function updateTotalForms() {
+      const totalForms = document.querySelectorAll(".formset-row").length;
+      document.getElementById("id_form-TOTAL_FORMS").value = totalForms;
+    }
+
+    // Clonar plantilla de fila
+    const emptyRow = document.querySelector(".formset-row").cloneNode(true);
+
+    // Limpiar valores de la fila clonada
+    function clearRow(row) {
+      row.querySelector('select[name$="-producto"]').selectedIndex = 0;
+      row.querySelector('input[name$="-cantidad"]').value = "";
+      row.querySelector(".precio").value = "";
+      row.querySelector(".subtotal").value = "";
+    }
+
+    // Agregar nueva fila
+    document.getElementById("add-row").addEventListener("click", function () {
+      const formsetContainer = document.getElementById("formset-container");
+      const totalFormsInput = document.getElementById("id_form-TOTAL_FORMS");
+      const totalForms = parseInt(totalFormsInput.value);
+      const newRow = emptyRow.cloneNode(true);
+
+      // Cambia los atributos name e id de los inputs/selects de la nueva fila
+      newRow.querySelectorAll("input, select").forEach(function (input) {
+        if (input.name) {
+          input.name = input.name.replace(/form-(\d+)-/, `form-${totalForms}-`);
+        }
+        if (input.id) {
+          input.id = input.id.replace(/form-(\d+)-/, `form-${totalForms}-`);
+        }
+        // Limpia el valor
+        if (input.type === "number" || input.tagName === "INPUT")
+          input.value = "";
+        if (input.tagName === "SELECT") input.selectedIndex = 0;
+      });
+
+      formsetContainer.appendChild(newRow);
+      totalFormsInput.value = totalForms + 1;
+      attachEventListeners(newRow);
+      preventDuplicateProducts();
+    });
+
+    // Inicializar eventos en las filas existentes
+    document.querySelectorAll(".formset-row").forEach((row) => {
+      attachEventListeners(row);
+    });
+
+    // Inicializar totales y evitar duplicados al cargar
+    calculateTotal();
+    preventDuplicateProducts();
   });
 </script>
 {% endblock %}
