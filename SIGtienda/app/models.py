@@ -1,3 +1,4 @@
+# models.py
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
@@ -8,11 +9,12 @@ class Categoria(models.Model):
     codigoCategoria = models.CharField(max_length=50)
 
     def __str__(self):
-      return self.nombreCategoria
-    
+        return self.nombreCategoria
+
     class Meta:
         verbose_name = "Categoria"
         verbose_name_plural = "Categorias"
+
 
 class Cliente(models.Model):
     nombre = models.CharField(max_length=50)
@@ -21,18 +23,19 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nombre
-    
+
     class Meta:
         verbose_name = "Cliente"
         verbose_name_plural = "Clientes"
-    
+
+
 class CuentaCliente(models.Model):
     montoTotal = models.FloatField()
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.id
-    
+
     class Meta:
         verbose_name = "Cuenta de cliente"
         verbose_name_plural = "Cuentas de clientes"
@@ -41,48 +44,48 @@ class CuentaCliente(models.Model):
 class Marcas(models.Model):
     nombreMarca = models.CharField(max_length=50)
 
-    def __str__(self):    
+    def __str__(self):
         return self.nombreMarca
-    
+
     class Meta:
         verbose_name = "Marca"
         verbose_name_plural = "Marcas"
-    
+
+
 class Pedido(models.Model):
+    ESTADOS = [
+        ('pendiente', 'Pendiente'),
+        ('enviado', 'Enviado'),
+        ('entregado', 'Entregado'),
+        ('cancelado', 'Cancelado'),
+    ]
+
+    estado = models.CharField(max_length=50, choices=ESTADOS, default='pendiente')
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     fechaPedido = models.DateField()
     total = models.FloatField()
 
     def __str__(self):
         return self.id
-    
+
     class Meta:
         verbose_name = "Pedido"
         verbose_name_plural = "Pedidos"
 
-class EstadoPedido(models.Model):
-    nombreEstadoPedido = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.nombreEstadoPedido
-    
-    class Meta:
-        verbose_name = "Estado de pedido"
-        verbose_name_plural = "Estados de pedido"
-    
 
 class Pago(models.Model):
     cantidad = models.IntegerField()
     fecha = models.DateField()
     esAbono = models.BooleanField()
-    cuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)    
-    
+    cuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)
+
     def __str__(self):
-        return self.id 
-    
+        return self.id
+
     class Meta:
         verbose_name = "Pago"
         verbose_name_plural = "Pagos"
+
 
 class Proveedor(models.Model):
     nombreProveedor = models.CharField(max_length=50)
@@ -93,31 +96,34 @@ class Proveedor(models.Model):
 
     def __str__(self):
         return self.id
-    
+
     class Meta:
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores"
-    
+
+
 class TipoEmpaque(models.Model):
     nombreTipoEmpaque = models.CharField(max_length=50)
     models.CharField(max_length=50)
 
     def __str__(self):
         return str(self.id) + " - " + self.nombreTipoEmpaque
-    
+
     class Meta:
         verbose_name = "Tipo de empaque"
         verbose_name_plural = "Tipos de empaque"
+
 
 class UnidadDeMedida(models.Model):
     nombreUnidadDeMedida = models.CharField(max_length=50)
 
     def __str__(self):
         return self.nombreUnidadDeMedida
-    
+
     class Meta:
         verbose_name = "Unidad de medida"
         verbose_name_plural = "Unidades de medida"
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, cedula, email, password=None, **extra_fields):
@@ -125,7 +131,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('El campo cédula es obligatorio')
         if not email:
             raise ValueError('El campo email es obligatorio')
-        
+
         email = self.normalize_email(email)
         user = self.model(cedula=cedula, email=email, **extra_fields)
         user.set_password(password)
@@ -143,11 +149,14 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(cedula, email, password, **extra_fields)
 
+
 class Usuario(AbstractUser):
     nombre = models.CharField(max_length=50, verbose_name='Nombre')
     apellido = models.CharField(max_length=50, verbose_name='Apellido')
-    cedula = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='Cédula')
-    email = models.EmailField(unique=True, blank=False, verbose_name='Correo electrónico')
+    cedula = models.CharField(
+        max_length=50, unique=True, null=True, blank=True, verbose_name='Cédula')
+    email = models.EmailField(unique=True, blank=False,
+                              verbose_name='Correo electrónico')
     username = None
 
     USERNAME_FIELD = 'cedula'
@@ -161,63 +170,71 @@ class Usuario(AbstractUser):
     class Meta:
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
-        
-class Venta(models.Model):   
+
+
+class Venta(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    fechaVenta = models.DateField() 
+    fechaVenta = models.DateField()
     totalCompra = models.FloatField()
 
     def __str__(self):
-        return str(self.id) 
-         
+        return str(self.id)
+
     class Meta:
         verbose_name = "Venta"
         verbose_name_plural = "Ventas"
-        
+
+
 class Producto(models.Model):
     nombreProducto = models.CharField(max_length=50)
     precio = models.FloatField()
-    cantidad = models.IntegerField()
     vidaUtil = models.IntegerField()
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     marcas = models.ForeignKey(Marcas, on_delete=models.CASCADE)
-    unidadDeMedida = models.ForeignKey(UnidadDeMedida, on_delete=models.CASCADE)
+    unidadDeMedida = models.ForeignKey(
+        UnidadDeMedida, on_delete=models.CASCADE)
     tipoEmpaque = models.ForeignKey(TipoEmpaque, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.nombreProducto
-    
+
     class Meta:
         verbose_name = "Producto"
         verbose_name_plural = "Productos"
-    
-class  Inventario(models.Model):
-    estadoProducto = models.CharField(max_length=50)
+
+
+class Inventario(models.Model):
+    ESTADOS = [
+        ('activo', 'Activo'),
+        ('inactivo', 'Inactivo')
+    ]
+    estadoProducto = models.CharField(max_length=50, choices=ESTADOS, default='activo')
     stock = models.IntegerField()
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE) 
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.id
-    
+
     class Meta:
         verbose_name = "Inventario"
         verbose_name_plural = "Inventarios"
-    
+
+
 class DetalleVenta(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     precio = models.FloatField()
     total = models.FloatField()
-    
+
     def __str__(self):
-        return str(self.id) 
-    
+        return str(self.id)
+
     class Meta:
         verbose_name = "Detalle de venta"
         verbose_name_plural = "Detalles de venta"
-    
+
 
 class DetallePedido(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
@@ -229,20 +246,21 @@ class DetallePedido(models.Model):
 
     def __str__(self):
         return self.id
-    
+
     class Meta:
         verbose_name = "Detalle de pedido"
         verbose_name_plural = "Detalles de pedido"
-    
+
+
 class Fiado(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE)
     montoDeuda = models.FloatField()
-    fechaPago = models.DateField()
+    fechaUltimoPago = models.DateField()
     CuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.id
-    
+
     class Meta:
         verbose_name = "Fiado"
         verbose_name_plural = "Fiados"

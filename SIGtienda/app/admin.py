@@ -1,3 +1,4 @@
+# admin.py
 from django.contrib import admin
 from .models import *
 
@@ -11,6 +12,6 @@ admin.site.register(UnidadDeMedida)
 admin.site.register(TipoEmpaque)
 admin.site.register(Pedido)
 admin.site.register(DetallePedido)
-admin.site.register(EstadoPedido)
 admin.site.register(Venta)
 admin.site.register(DetalleVenta)
+admin.site.register(Inventario)
