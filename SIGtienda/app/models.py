@@ -30,11 +30,11 @@ class Cliente(models.Model):
 
 
 class CuentaCliente(models.Model):
-    montoTotal = models.FloatField()
+    montoTotal = models.FloatField(default=0.0)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.id
+        return str(self.id)
 
     class Meta:
         verbose_name = "Cuenta de cliente"
@@ -66,7 +66,7 @@ class Pedido(models.Model):
     total = models.FloatField()
 
     def __str__(self):
-        return self.id
+        return str(self.id)
 
     class Meta:
         verbose_name = "Pedido"
@@ -80,7 +80,7 @@ class Pago(models.Model):
     cuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.id
+        return str(self.id)
 
     class Meta:
         verbose_name = "Pago"
@@ -95,7 +95,7 @@ class Proveedor(models.Model):
     calificacion = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.id
+        return str(self.id)
 
     class Meta:
         verbose_name = "Proveedor"
@@ -214,7 +214,7 @@ class Inventario(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.id
+        return str(self.id) + ' - ' + self.producto.nombreProducto
 
     class Meta:
         verbose_name = "Inventario"
@@ -245,7 +245,7 @@ class DetallePedido(models.Model):
     valorpedido = models.FloatField()
 
     def __str__(self):
-        return self.id
+        return str(self.id)
 
     class Meta:
         verbose_name = "Detalle de pedido"
@@ -256,10 +256,10 @@ class Fiado(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE)
     montoDeuda = models.FloatField()
     fechaUltimoPago = models.DateField()
-    CuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)
+    cuentaCliente = models.ForeignKey(CuentaCliente, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.id
+        return str(self.id)
 
     class Meta:
         verbose_name = "Fiado"

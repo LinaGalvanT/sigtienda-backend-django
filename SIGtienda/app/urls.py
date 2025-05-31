@@ -8,6 +8,8 @@ router = DefaultRouter()
 router.register(r'ventas', VentaViewSet)
 router.register(r'detalleventas', DetalleVentaViewSet)
 router.register(r'productos', ProductoViewSet)
+router.register(r'clientes', ClienteViewSet)
+router.register(r'fiados', FiadoViewSet)
 
 urlpatterns = [
     path('api/', include(router.urls)),
