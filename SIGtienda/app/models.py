@@ -7,6 +7,7 @@ class Categoria(models.Model):
     nombreCategoria = models.CharField(max_length=50)
     descripcion = models.CharField(max_length=500)
     codigoCategoria = models.CharField(max_length=50)
+    dias_alerta_vencimiento = models.IntegerField(default=15) 
 
     def __str__(self):
         return self.nombreCategoria
@@ -52,6 +53,21 @@ class Marcas(models.Model):
         verbose_name_plural = "Marcas"
 
 
+class Proveedor(models.Model):
+    nombreProveedor = models.CharField(max_length=50)
+    nombreContacto = models.CharField(max_length=50)
+    telefono = models.CharField(max_length=50)
+    email = models.EmailField()
+    comentarios = models.CharField(max_length=500, null=True, blank=True)
+
+    def __str__(self):
+        return str(self.id)
+
+    class Meta:
+        verbose_name = "Proveedor"
+        verbose_name_plural = "Proveedores"
+
+
 class Pedido(models.Model):
     ESTADOS = [
         ('pendiente', 'Pendiente'),
@@ -61,7 +77,7 @@ class Pedido(models.Model):
     ]
 
     estado = models.CharField(max_length=50, choices=ESTADOS, default='pendiente')
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, null=True, blank=True)
     fechaPedido = models.DateField()
     total = models.FloatField()
 
@@ -85,22 +101,6 @@ class Pago(models.Model):
     class Meta:
         verbose_name = "Pago"
         verbose_name_plural = "Pagos"
-
-
-class Proveedor(models.Model):
-    nombreProveedor = models.CharField(max_length=50)
-    nombreContacto = models.CharField(max_length=50)
-    telefono = models.CharField(max_length=50)
-    email = models.EmailField()
-    calificacion = models.CharField(max_length=50)
-
-    def __str__(self):
-        return str(self.id)
-
-    class Meta:
-        verbose_name = "Proveedor"
-        verbose_name_plural = "Proveedores"
-
 
 class TipoEmpaque(models.Model):
     nombreTipoEmpaque = models.CharField(max_length=50)
@@ -157,8 +157,15 @@ class Usuario(AbstractUser):
         max_length=50, unique=True, null=True, blank=True, verbose_name='Cédula')
     email = models.EmailField(unique=True, blank=False,
                               verbose_name='Correo electrónico')
+    acceso_ventas = models.BooleanField(default=True)
+    acceso_inventario = models.BooleanField(default=True)
+    acceso_productos = models.BooleanField(default=True)
+    acceso_proveedores = models.BooleanField(default=True)
+    acceso_compras = models.BooleanField(default=True)
+    acceso_clientes = models.BooleanField(default=True)
+    acceso_cuentas = models.BooleanField(default=True)
+    # Sobreescribimos el campo username                              
     username = None
-
     USERNAME_FIELD = 'cedula'
     REQUIRED_FIELDS = ['nombre', 'apellido', 'email']
 
@@ -211,6 +218,7 @@ class Inventario(models.Model):
     ]
     estadoProducto = models.CharField(max_length=50, choices=ESTADOS, default='activo')
     stock = models.IntegerField()
+    stockMinimo = models.IntegerField(default=0)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -239,13 +247,11 @@ class DetalleVenta(models.Model):
 class DetallePedido(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    marcas = models.ForeignKey(Marcas, on_delete=models.CASCADE)
-    fechaIngreso = models.DateField()
     cantidad = models.IntegerField()
     valorpedido = models.FloatField()
 
     def __str__(self):
-        return str(self.id)
+        return str(self.id) + " - " + str(self.producto.nombreProducto)
 
     class Meta:
         verbose_name = "Detalle de pedido"
@@ -264,3 +270,13 @@ class Fiado(models.Model):
     class Meta:
         verbose_name = "Fiado"
         verbose_name_plural = "Fiados"
+
+class Lote(models.Model):
+    producto = models.ForeignKey('Producto', on_delete=models.CASCADE, related_name='lotes')
+    cantidad = models.IntegerField()
+    fecha_ingreso = models.DateField(auto_now_add=True)
+    fecha_vencimiento = models.DateField(null=True, blank=True)
+    numero_lote = models.CharField(max_length=50, blank=True, null=True)
+
+    def __str__(self):
+        return f"Lote {self.numero_lote} - {self.producto.nombreProducto}"

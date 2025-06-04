@@ -2,13 +2,6 @@
 from rest_framework import serializers
 from .models import *
 
-
-class ClienteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Cliente
-        fields = '__all__'
-
-
 class ProductoSerializer(serializers.ModelSerializer):
 
     stock = serializers.SerializerMethodField()
@@ -46,13 +39,80 @@ class VentaSerializer(serializers.ModelSerializer):
 
 
 class InventarioSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.CharField(source="producto.nombreProducto", read_only=True)
+    estado_legible = serializers.CharField(source="get_estadoProducto_display", read_only=True)
+    
     class Meta:
         model = Inventario
         fields = '__all__'
 
+class ProveedorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Proveedor
+        fields = '__all__'
+
+class PedidoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pedido
+        fields = '__all__'
+
+class DetallePedidoSerializer(serializers.ModelSerializer):
+    fecha_vencimiento = serializers.DateField(read_only=True, required=False)
+
+    class Meta:
+        model = DetallePedido
+        fields = '__all__'
+
+class CategoriaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Categoria
+        fields = '__all__'
+
+class MarcaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Marcas
+        fields = '__all__'
+
+class UnidadDeMedidaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UnidadDeMedida
+        fields = '__all__'
+
+class TipoEmpaqueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoEmpaque
+        fields = '__all__'
+
+class LoteSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.CharField(source="producto.nombreProducto", read_only=True)
+    class Meta:
+        model = Lote
+        fields = '__all__'
+
+class PagoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pago
+        fields = ['id', 'fecha', 'cantidad', 'esAbono']
 
 class FiadoSerializer(serializers.ModelSerializer):
-    cuentaCliente = serializers.PrimaryKeyRelatedField(read_only=True)
+    pagos = PagoSerializer(many=True, read_only=True)  # Pagos asociados al fiado
+    venta = VentaSerializer(read_only=True)  # Detalles de la venta fiada
+
     class Meta:
         model = Fiado
-        fields = '__all__'
+        fields = ['id', 'venta', 'montoDeuda', 'fechaUltimoPago', 'pagos']
+
+class CuentaClienteSerializer(serializers.ModelSerializer):
+    fiados = FiadoSerializer(many=True, read_only=True)
+    pagos = PagoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CuentaCliente
+        fields = ['id', 'montoTotal', 'fiados', 'pagos']
+
+class ClienteSerializer(serializers.ModelSerializer):
+    cuenta = CuentaClienteSerializer(read_only=True)
+
+    class Meta:
+        model = Cliente
+        fields = ['id', 'nombre', 'apellido', 'telefono', 'cuenta']
