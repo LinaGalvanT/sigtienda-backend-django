@@ -95,16 +95,16 @@ class PagoSerializer(serializers.ModelSerializer):
         fields = ['id', 'fecha', 'cantidad', 'esAbono']
 
 class FiadoSerializer(serializers.ModelSerializer):
-    pagos = PagoSerializer(many=True, read_only=True)  # Pagos asociados al fiado
-    venta = VentaSerializer(read_only=True)  # Detalles de la venta fiada
+    pagos = PagoSerializer(many=True, read_only=True, source='pago_set')  # Si tienes relación inversa
+    venta = VentaSerializer(read_only=True)
 
     class Meta:
         model = Fiado
         fields = ['id', 'venta', 'montoDeuda', 'fechaUltimoPago', 'pagos']
 
 class CuentaClienteSerializer(serializers.ModelSerializer):
-    fiados = FiadoSerializer(many=True, read_only=True)
-    pagos = PagoSerializer(many=True, read_only=True)
+    fiados = FiadoSerializer(many=True, read_only=True, source='fiado_set')
+    pagos = PagoSerializer(many=True, read_only=True, source='pago_set')
 
     class Meta:
         model = CuentaCliente
