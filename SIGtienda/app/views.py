@@ -108,7 +108,7 @@ class DetalleVentaViewSet(viewsets.ModelViewSet):
                 lote.cantidad = 0
                 lote.save()
         if cantidad_restante > 0:
-            raise ValueError("No hay suficiente stock en los lotes para completar la venta.")
+            print("No hay suficiente stock en los lotes para completar la venta.")
 
     def create(self, request, *args, **kwargs):
         producto_id = request.data.get('producto')
@@ -153,15 +153,9 @@ class FiadoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        # Obtener la venta desde los datos del serializer
         venta = serializer.validated_data['venta']
         cliente = venta.cliente
-
-        # Obtener o crear la cuenta del cliente
-        cuenta, creada = CuentaCliente.objects.get_or_create(
-            cliente=cliente)
-
-        # Guardar el fiado con la cuenta asociada
+        cuenta, creada = CuentaCliente.objects.get_or_create(cliente=cliente)
         serializer.save(cuentaCliente=cuenta)
 
 
@@ -184,7 +178,7 @@ class DetallePedidoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         detalle = serializer.save()
-        # Actualiza inventario si corresponde
+        # Solo si el pedido está recibido/entregado
         if detalle.pedido.estado == 'entregado':
             inventario, creada = Inventario.objects.get_or_create(
                 producto=detalle.producto,
@@ -193,19 +187,17 @@ class DetallePedidoViewSet(viewsets.ModelViewSet):
             inventario.stock += detalle.cantidad
             inventario.save()
 
-        # Asignar número de lote automáticamente
-        ultimo_lote = Lote.objects.filter(producto=detalle.producto).aggregate(Max('id'))['id__max'] or 0
-        numero_lote = f"{detalle.producto}-{ultimo_lote + 1}"
+            # Asignar número de lote automáticamente
+            ultimo_lote = Lote.objects.filter(producto=detalle.producto).aggregate(Max('id'))['id__max'] or 0
+            numero_lote = f"{detalle.producto}-{ultimo_lote + 1}"
 
-        # Toma la fecha de vencimiento del request
-        fecha_vencimiento = self.request.data.get('fecha_vencimiento')
+            Lote.objects.create(
+                producto=detalle.producto,
+                cantidad=detalle.cantidad,
+                fecha_vencimiento=detalle.fecha_vencimiento,  # o como llegue del frontend
+                numero_lote=numero_lote
+            )
 
-        Lote.objects.create(
-            producto=detalle.producto,
-            cantidad=detalle.cantidad,
-            fecha_vencimiento=fecha_vencimiento,
-            numero_lote=numero_lote
-        )
 
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()

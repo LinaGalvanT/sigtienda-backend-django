@@ -62,7 +62,7 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Svelte default dev port
+    "http://localhost:5173",  # React default dev port
 ]
 
 AUTH_USER_MODEL = 'app.Usuario'

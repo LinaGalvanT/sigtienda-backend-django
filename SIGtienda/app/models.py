@@ -249,6 +249,7 @@ class DetallePedido(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     valorpedido = models.FloatField()
+    fecha_vencimiento = models.DateField(null=True, blank=True) 
 
     def __str__(self):
         return str(self.id) + " - " + str(self.producto.nombreProducto)

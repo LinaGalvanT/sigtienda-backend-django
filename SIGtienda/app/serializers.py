@@ -9,6 +9,7 @@ class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
         fields = '__all__'
+        
 
     def get_stock(self, obj):
         # Busca el inventario relacionado
@@ -57,7 +58,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
-    fecha_vencimiento = serializers.DateField(read_only=True, required=False)
+    fecha_vencimiento = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = DetallePedido
@@ -95,12 +96,13 @@ class PagoSerializer(serializers.ModelSerializer):
         fields = ['id', 'fecha', 'cantidad', 'esAbono']
 
 class FiadoSerializer(serializers.ModelSerializer):
-    pagos = PagoSerializer(many=True, read_only=True, source='pago_set')  # Si tienes relación inversa
-    venta = VentaSerializer(read_only=True)
+    pagos = PagoSerializer(many=True, read_only=True, source='pago_set')
+    venta = serializers.PrimaryKeyRelatedField(queryset=Venta.objects.all())
+    cuentaCliente = serializers.PrimaryKeyRelatedField(read_only=True) 
 
     class Meta:
         model = Fiado
-        fields = ['id', 'venta', 'montoDeuda', 'fechaUltimoPago', 'pagos']
+        fields = '__all__'
 
 class CuentaClienteSerializer(serializers.ModelSerializer):
     fiados = FiadoSerializer(many=True, read_only=True, source='fiado_set')
